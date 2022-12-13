@@ -211,34 +211,29 @@ ptpcam_siginthandler(int signum)
 static short
 ptp_read_func (unsigned char *bytes, uint64_t size, void *data)
 {
-	int result=-1;
-	PTP_USB *ptp_usb=(PTP_USB *)data;
-	int toread=0;
-	signed long int rbytes=size;
+	int result = -1;
+	PTP_USB *ptp_usb = (PTP_USB *)data;
+	int toread = 0;
+	signed long int rbytes = size;
 
 	do {
-		bytes+=toread;
-		if (rbytes>PTPCAM_USB_URB) 
+		bytes += toread;
+		if (rbytes > PTPCAM_USB_URB) 
 			toread = PTPCAM_USB_URB;
 		else
 			toread = rbytes;
-		result=USB_BULK_READ(ptp_usb->handle, ptp_usb->inep,(char *)bytes, toread,ptpcam_usb_timeout);
+		result = usb_bulk_read(ptp_usb->handle, ptp_usb->inep,(char *)bytes, toread, ptpcam_usb_timeout);
 		/* sometimes retry might help */
-		if (result<=0) {
-			usb_clear_halt(ptp_usb->handle, ptp_usb->inep);
-			result=USB_BULK_READ(ptp_usb->handle, ptp_usb->inep,(char *)bytes, toread,ptpcam_usb_timeout);
-}
+		if (result == 0)
+			result = usb_bulk_read(ptp_usb->handle, ptp_usb->inep,(char *)bytes, toread, ptpcam_usb_timeout);
 		if (result < 0)
 			break;
-		rbytes-=PTPCAM_USB_URB;
-	} while (rbytes>0);
+		rbytes -= PTPCAM_USB_URB;
+	} while (rbytes > 0);
 
-	if (result > 0) {
-		return (PTP_RC_OK);
-	}
-	else 
-	{
-		if (verbose) perror("usb_bulk_read");
+	if (result >= 0) {
+		return PTP_RC_OK;
+	} else {
 		return PTP_ERROR_IO;
 	}
 }
